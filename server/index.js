@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import ghRoutes from './routes/gh.js'; // or ./routes/auth.js - whatever you named it
 import mongoose from 'mongoose';
 import projectRoutes from './routes/project.js'
+import chatRoutes from './routes/chat.js'
 dotenv.config();
 const app = express();
 
@@ -25,11 +26,13 @@ app.use(cors({
   credentials: true 
 }));
 app.use(express.json());
+app.use(express.static('public'))
 app.use(cookieParser());
 
 // ROUTES
 app.use('/api/auth', ghRoutes);
 app.use('/api/projects', projectRoutes)
+app.use('/api/chat', chatRoutes)
 app.get('/', (req, res) => {
   res.json({ status: 'ashen running' });
 });

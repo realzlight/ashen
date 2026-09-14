@@ -1,4 +1,3 @@
-
 import express from 'express'
 import jwt from 'jsonwebtoken'
 import User from '../models/User.js'
@@ -8,7 +7,7 @@ const router = express.Router()
 router.get('/github', (req, res) => {
   const params = new URLSearchParams({
     client_id: process.env.GITHUB_CLIENT_ID,
-    redirect_uri: process.env.GITHUB_CALLBACK_URL,
+    redirect_uri: process.env.GITHUB_CALLBACK_URL, // must be exactly https://ashen-9949.onrender.com/api/auth/github/callback
     scope: 'read:user user:email',
   })
   res.redirect(`https://github.com/login/oauth/authorize?${params}`)
@@ -26,15 +25,14 @@ router.get('/github/callback', async (req, res) => {
         client_id: process.env.GITHUB_CLIENT_ID,
         client_secret: process.env.GITHUB_CLIENT_SECRET,
         code,
+        redirect_uri: process.env.GITHUB_CALLBACK_URL, // FIX 1: must send again
       }),
     })
 
-    const tokenText = await tokenRes.text()
-    console.log('STATUS:', tokenRes.status)
-    console.log('RAW BODY:', tokenText)
-    const tokenData = tokenText ? JSON.parse(tokenText) : {}
+    const tokenData = await tokenRes.json()
+    console.log('TOKEN DATA:', tokenData)
     const access_token = tokenData.access_token
-    if (!access_token) throw new Error('No access_token: ' + tokenText)
+    if (!access_token) throw new Error('No access_token: ' + JSON.stringify(tokenData))
 
     const userRes = await fetch('https://api.github.com/user', {
       headers: { Authorization: `Bearer ${access_token}` },
@@ -56,10 +54,22 @@ router.get('/github/callback', async (req, res) => {
         avatar: ghUser.avatar_url,
         accessToken: access_token
       })
+    } else {
+      user.accessToken = access_token
+      await user.save()
     }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' })
-    res.cookie('token', token, { httpOnly: true, secure: false, sameSite: 'lax' })
+    
+    // FIX 2: for cross-site Vercel -> Render
+    const isProd = process.env.NODE_ENV === 'production'
+    res.cookie('token', token, { 
+      httpOnly: true, 
+      secure: isProd, // true on Render
+      sameSite: isProd ? 'none' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    })
+    
     res.redirect(`${process.env.CLIENT_URL}/dashboard`)
 
   } catch (err) {
@@ -69,7 +79,8 @@ router.get('/github/callback', async (req, res) => {
 })
 
 router.get('/logout', (req, res) => {
-  res.clearCookie('token', { httpOnly: true, sameSite: 'lax', secure: false });
+  const isProd = process.env.NODE_ENV === 'production'
+  res.clearCookie('token', { httpOnly: true, sameSite: isProd ? 'none' : 'lax', secure: isProd });
   res.json({ message: 'Logged out' });
 });
 

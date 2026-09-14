@@ -48,7 +48,7 @@ export default function Project() {
   };
 
   const scriptTag = project
-    ? `<script src="https://ashen.ai/widget.js" data-key="${project.widgetKey}"></script>`
+    ? `<script src="https://ashen-9949.onrender.com/widget.js" data-key="${project.widgetKey}"></script>`
     : "";
 
   const handleCopy = () => {
