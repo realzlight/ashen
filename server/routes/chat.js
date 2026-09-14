@@ -38,7 +38,7 @@ router.post('/', async (req, res) => {
     const systemPrompt = `You are a customer support assistant for ${project.name}.
 Business info: ${project.businessInfo || 'Not provided'}
 Knowledge base: ${project.docs || 'Not provided'}
-Answer only using the information above. If you're not confident the answer is covered by this information, say you're not sure and offer to connect them with a human — do not guess.`
+Answer only using the information above. If you're not confident the answer is covered by this information, say you're not sure and offer to connect them with a human — do not guess or you can try if its obvious thing!. You can answer any question about the product and side questions too that can be connected to the product or business but no extremely side wuestions like coding things prohibit them and never answer any extremely side question.`
 
     const contents = [
       { role: 'user', parts: [{ text: systemPrompt }] },
